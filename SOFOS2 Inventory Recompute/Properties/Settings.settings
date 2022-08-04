@@ -1,0 +1,21 @@
+﻿<?xml version='1.0' encoding='utf-8'?>
+<SettingsFile xmlns="http://schemas.microsoft.com/VisualStudio/2004/01/settings" CurrentProfile="(Default)" GeneratedClassNamespace="SOFOS2_Inventory_Recompute.Properties" GeneratedClassName="Settings">
+  <Profiles />
+  <Settings>
+    <Setting Name="SERVER" Type="System.String" Scope="User">
+      <Value Profile="(Default)">127.0.0.1</Value>
+    </Setting>
+    <Setting Name="USER" Type="System.String" Scope="User">
+      <Value Profile="(Default)">root</Value>
+    </Setting>
+    <Setting Name="PASSWORD" Type="System.String" Scope="User">
+      <Value Profile="(Default)">supervisor</Value>
+    </Setting>
+    <Setting Name="DATABASE" Type="System.String" Scope="User">
+      <Value Profile="(Default)">sofos2_mparang</Value>
+    </Setting>
+    <Setting Name="ITEMS" Type="System.String" Scope="User">
+      <Value Profile="(Default)" />
+    </Setting>
+  </Settings>
+</SettingsFile>
