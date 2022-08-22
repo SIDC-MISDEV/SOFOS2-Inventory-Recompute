@@ -12,10 +12,10 @@
       <Value Profile="(Default)">supervisor</Value>
     </Setting>
     <Setting Name="DATABASE" Type="System.String" Scope="User">
-      <Value Profile="(Default)">sofos2_mparang</Value>
+      <Value Profile="(Default)">sofos2_main</Value>
     </Setting>
     <Setting Name="ITEMS" Type="System.String" Scope="User">
-      <Value Profile="(Default)" />
+      <Value Profile="(Default)">GRO006079,GRO023361,GRO031302,GRO033906</Value>
     </Setting>
   </Settings>
 </SettingsFile>

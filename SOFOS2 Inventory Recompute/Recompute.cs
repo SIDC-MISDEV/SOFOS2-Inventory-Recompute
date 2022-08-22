@@ -36,8 +36,11 @@ namespace SOFOS2_Inventory_Recompute
 
                 var forUpdate = $"'{string.Join("','", _items)}'";
 
-                conn.ArgSQLCommand = Query.GetAllItems();
-                //conn.ArgSQLCommand = Query.GetItemsFromMasterData(forUpdate);
+                if(items.Length > 0)
+                    conn.ArgSQLCommand = Query.GetItemsFromMasterData(forUpdate);
+                else
+                    conn.ArgSQLCommand = Query.GetAllItems();
+
 
                 using (var dr = conn.MySQLExecuteReaderBeginTransaction())
                 {
@@ -101,6 +104,33 @@ namespace SOFOS2_Inventory_Recompute
                     {
                         item.ItemCode = dr["itemcode"].ToString();
                         item.TransValue = Convert.ToDecimal(dr["transvalue"]);
+                        item.RunningValue = Convert.ToDecimal(dr["runningvalue"]);
+                    }
+                }
+
+                return item;
+            }
+            catch (Exception)
+            {
+
+                throw;
+            }
+        }
+
+        private Item GetLatestTransactionSOFOS2(MySQLHelper conn, string itemCode)
+        {
+            try
+            {
+                var item = new Item();
+
+                conn.ArgSQLCommand = Query.GetLedgerSOFOS2();
+                conn.ArgSQLParam = new Dictionary<string, object>() { { "@itemCode", itemCode } };
+
+                using (var dr = conn.MySQLExecuteReaderBeginTransaction())
+                {
+                    while (dr.Read())
+                    {
+                        item.ItemCode = itemCode;
                         item.RunningValue = Convert.ToDecimal(dr["runningvalue"]);
                     }
                 }
@@ -357,7 +387,6 @@ namespace SOFOS2_Inventory_Recompute
             try
             {
                 List<Item> itemDetails = null;
-
                 decimal runningQty = 0, runningValue = 0, cost = 0, transValue = 0;
                 var items = new List<string>();
                 int forUpdateCostItem = 0;
@@ -368,6 +397,19 @@ namespace SOFOS2_Inventory_Recompute
                 decimal prevCost = 0;
                 int updatedItemsZero = 0;
 
+                string errorItems = string.Empty;
+                string[] listItems = new string[] { };
+                string[] listItems2 = new string[] { };
+                string itemsBatchTwo = string.Empty;
+
+                if (File.Exists(Path.Combine(Application.StartupPath, "updateitem.txt")))
+                {
+                    errorItems = File.ReadAllText(Path.Combine(Application.StartupPath, "updateitem.txt"));
+                    listItems = errorItems.Replace("\n", ",").Replace("\r", "").Split(',');
+                    listItems2 = listItems.Where(x => !string.IsNullOrEmpty(x)).ToArray();
+                    itemsBatchTwo = string.Join(",", listItems2);
+                }
+
                 if (File.Exists(Path.Combine(Application.StartupPath, "error.txt")))
                     File.Delete(Path.Combine(Application.StartupPath, "error.txt"));
 
@@ -375,17 +417,12 @@ namespace SOFOS2_Inventory_Recompute
                 {
                     conn.BeginTransaction();
 
-                    items = GetAllItems(conn, string.Empty);
+                    items = GetAllItems(conn, itemsBatchTwo);
 
                     if(items.Count > 0)
                     {
                         foreach (var item in items)
                         {
-                            if(item == "GRO000008")
-                            {
-
-                            }
-
                             try
                             {
                                 itemDetails = new List<Item>();
@@ -406,6 +443,7 @@ namespace SOFOS2_Inventory_Recompute
                                     {
                                         try
                                         {
+
                                             forUpdateItem = new Item();
                                             forUpdateItem.ItemCode = details.ItemCode;
                                             forUpdateItem.Reference = details.Reference;
@@ -416,7 +454,7 @@ namespace SOFOS2_Inventory_Recompute
 
                                             forUpdateItem.Module = p.ToString();
 
-                                            if (p == Process.ReceiveFromVendor || p == Process.Receiving)
+                                            if (p == Process.ReceiveFromVendor || p == Process.Receiving || (p == Process.InventoryAdjustment && details.Qty > 0))
                                             {
                                                 transValue = Math.Round(details.Cost * (details.Qty * details.Conversion), 2, MidpointRounding.AwayFromZero);
 
@@ -427,13 +465,13 @@ namespace SOFOS2_Inventory_Recompute
 
                                                 if (runningQty <= 0 || runningValue <= 0)
                                                 {
-                                                    //runningQty = 0;
-                                                    //runningValue = 0;
-                                                    //cost = prevCost;
+                                                    runningQty = 0;
+                                                    runningValue = 0;
+                                                    cost = prevCost;
 
                                                 }
-
-                                                cost = Math.Round(runningValue / runningQty, 2, MidpointRounding.AwayFromZero);
+                                                else
+                                                    cost = Math.Round(runningValue / runningQty, 2, MidpointRounding.AwayFromZero);
 
                                                 updatedCost += 1;
                                             }
@@ -449,6 +487,13 @@ namespace SOFOS2_Inventory_Recompute
 
                                                     if (cost > 0)
                                                     {
+                                                        var count = updateItem.Count(x => x.ItemCode == details.ItemCode);
+
+                                                        if(count < 1)
+                                                        {
+                                                            File.AppendAllText(Path.Combine(Application.StartupPath, "updateitem2.txt"), $"{forUpdateItem.ItemCode}{Environment.NewLine}");
+                                                        }
+
                                                         updateItem.Add(new Logs
                                                         {
                                                             ItemCode = details.ItemCode,
@@ -459,11 +504,11 @@ namespace SOFOS2_Inventory_Recompute
 
                                                         conn.ArgSQLCommand = Query.UpdateCostPerTransaction(p);
                                                         conn.ArgSQLParam = new Dictionary<string, object>()
-                                                    {
-                                                        { "@transnum", details.TransNum },
-                                                        { "@itemcode", details.ItemCode },
-                                                        { "@cost", cost * details.Conversion}
-                                                    };
+                                                        {
+                                                            { "@transnum", details.TransNum },
+                                                            { "@itemcode", details.ItemCode },
+                                                            { "@cost", cost * details.Conversion}
+                                                        };
 
                                                         forUpdateCostItem += conn.ExecuteMySQL();
 
@@ -485,7 +530,11 @@ namespace SOFOS2_Inventory_Recompute
                                                 prevCost = cost;
 
                                                 runningQty += details.Qty * details.Conversion;
-                                                runningValue += transValue;
+
+                                                if (runningQty == 0)
+                                                    runningValue = 0;
+                                                else
+                                                    runningValue += transValue;
                                             }
 
                                             ThreadHelper.SetLabel(frm, frm.lblCostProgress, $"Updating item {item}. {Environment.NewLine}{updatedCost} out of {itemDetails.Count} transaction(s) for checking.{Environment.NewLine}{forUpdateCostItem} item cost transaction updated.{Environment.NewLine}Progress:{countItemForUpdate} out of {items.Count}.");
@@ -654,15 +703,10 @@ namespace SOFOS2_Inventory_Recompute
                                         forUpdateItem.Reference = details.Reference;
                                         forUpdateItem.Cost = details.Cost;
 
-                                        if(details.ItemCode == "GRO3816")
-                                        {
-
-                                        }
-
                                         Process p;
                                         Enum.TryParse(details.Module, out p);
 
-                                        if (p == Process.ReceiveFromVendor || p == Process.Receiving || p == Process.InventoryAdjustment)
+                                        if (p == Process.ReceiveFromVendor || p == Process.Receiving || (p == Process.InventoryAdjustment && details.Qty > 0))
                                         {
                                             transValue = Math.Round(details.Cost * (details.Qty * details.Conversion), 2, MidpointRounding.AwayFromZero);
 
@@ -673,10 +717,9 @@ namespace SOFOS2_Inventory_Recompute
 
                                             if (runningQty <= 0 || runningValue <= 0)
                                             {
-                                                //runningQty = 0;
-                                                //runningValue = 0;
-                                                //cost = prevCost;
-
+                                                runningQty = 0;
+                                                runningValue = 0;
+                                                cost = prevCost;
                                             }
 
                                             cost = Math.Round(runningValue / runningQty, 2, MidpointRounding.AwayFromZero);
@@ -736,7 +779,11 @@ namespace SOFOS2_Inventory_Recompute
                                             prevCost = cost;
 
                                             runningQty += details.Qty * details.Conversion;
-                                            runningValue += transValue;
+
+                                            if (runningQty == 0)
+                                                runningValue = 0;
+                                            else
+                                                runningValue += transValue;
                                         }
 
                                         ThreadHelper.SetLabel(frm, frm.lblCostProgress, $"Updating item {item}. {Environment.NewLine}{updatedCost} out of {itemDetails.Count} transaction(s) for checking.{Environment.NewLine}{forUpdateCostItem} item cost transaction updated.{Environment.NewLine}Progress:{countItemForUpdate} out of {items.Count}.");
@@ -963,6 +1010,59 @@ namespace SOFOS2_Inventory_Recompute
             receiveFromVendorObjectToCSV.SaveToCSV(items, filename);
         }
 
+        private void WriteLogs(List<ItemLedger> items)
+        {
+            string fileName = string.Format($"Item with Latest Running Value in Ledger-{DateTime.Now.ToString("ddMMyyyyHHmmss")}.csv");
+            string dropSitePath = Application.StartupPath;
+
+            ObjectToCSV<ItemLedger> receiveFromVendorObjectToCSV = new ObjectToCSV<ItemLedger>();
+            string filename = Path.Combine(dropSitePath, fileName);
+            receiveFromVendorObjectToCSV.SaveToCSV(items, filename);
+        }
+
+        public void GetAllItemsWithLatestRunningValue()
+        {
+            try
+            {
+                var result = new List<ItemLedger>();
+                int count = 0;
+
+                using (var conn = new MySQLHelper(connString))
+                {
+                    var list = GetAllItems(conn, string.Empty);
+
+                    if(list.Count > 0)
+                    {
+                        foreach (var item in list)
+                        {
+                            Item forGenerate = new Item();
+                            forGenerate = GetLatestTransactionSOFOS2(conn, item);
+
+                            if(!string.IsNullOrEmpty(forGenerate.ItemCode))
+                            {
+                                result.Add(new ItemLedger
+                                {
+                                    ItemCode = forGenerate.ItemCode,
+                                    RunningValue = forGenerate.RunningValue
+                                });
+
+                                count += 1;
+
+                                ThreadHelper.SetLabel(frm, frm.label2, $"{item} - {count} of {list.Count}");
+                            }
+                        }
+                    }
+                }
+
+                WriteLogs(result);
+            }
+            catch (Exception)
+            {
+
+                throw;
+            }
+        }
+
     }
 
     public class ObjectToCSV<T>
@@ -1002,5 +1102,11 @@ namespace SOFOS2_Inventory_Recompute
         public decimal NewCost { get; set; }
         public string Remarks { get; set; }
         public string Script { get; set; }
+    }
+
+    public class ItemLedger
+    {
+        public string ItemCode { get; set; }
+        public decimal RunningValue { get; set; }
     }
 }

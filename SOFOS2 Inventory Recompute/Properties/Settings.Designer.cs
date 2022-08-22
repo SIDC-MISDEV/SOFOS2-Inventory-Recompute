@@ -61,7 +61,7 @@ namespace SOFOS2_Inventory_Recompute.Properties {
         
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("sofos2_mparang")]
+        [global::System.Configuration.DefaultSettingValueAttribute("sofos2_main")]
         public string DATABASE {
             get {
                 return ((string)(this["DATABASE"]));
@@ -73,7 +73,7 @@ namespace SOFOS2_Inventory_Recompute.Properties {
         
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("")]
+        [global::System.Configuration.DefaultSettingValueAttribute("GRO006079,GRO023361,GRO031302,GRO033906")]
         public string ITEMS {
             get {
                 return ((string)(this["ITEMS"]));

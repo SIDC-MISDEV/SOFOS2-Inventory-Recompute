@@ -40,7 +40,7 @@ namespace SOFOS2_Inventory_Recompute
 
 	                    SELECT
 		                    a.transdate, a.reference, b.itemcode, b.transvalue
-	                    FROM iir00 a INNER JOIN iir10 b ON a.transnum = b.transnum
+	                    FROM iir00 a INNER JOIN iir10 b ON a.transnum = b.transnum WHERE a.transtype != 'BB'
 
 	                    UNION ALL
 
@@ -417,7 +417,7 @@ namespace SOFOS2_Inventory_Recompute
 	                FROM iia00 a INNER JOIN iia10 b ON a.transnum = b.transnum
 	                WHERE b.itemcode = @itemcode
 
-                ) as x ORDER BY x.transdate asc;");
+                ) as x ORDER BY x.transdate, x.systemdate asc;");
         }
 
         public static StringBuilder GetItemDetailsBatchTwo()
@@ -476,6 +476,93 @@ namespace SOFOS2_Inventory_Recompute
 	                WHERE b.itemcode = @itemcode
 
                 ) as x ORDER BY x.systemdate,x.transdate asc;");
+        }
+
+        public static StringBuilder GetLedgerSOFOS2()
+        {
+            return new StringBuilder(@"set @csum := 0; 
+                set @runvalue:=0;
+                select systemDate,idUser,transNum,module,transDate,reference,crossreference,outQuantity,inQuantity,round(price,2) 'price',round(transValue,2) 'transValue',round(runningQuantity,3) 'runningQuantity',if(runningquantity = 0, @runvalue:=0, round(@runvalue:=@runvalue + transvalue,2))  'runningvalue',runningQty from
+                (select x.systemDate, x.idUser,x.transNum,x.module,x.transDate,x.reference,x.crossreference,x.outQuantity,x.inQuantity,
+                x.price as price, if(x.inQuantity > 0, transValue, transValue * -1) 'transValue', (@csum:= @csum + IF(x.outQuantity > 0, x.outQuantity * -1 , x.inQuantity)) as runningQuantity, x.runningvalue, x.runningQty as runningQty 
+                from(
+                
+                #ST
+                SELECT  a.systemDate, a.idUser, a.transNum, a.transDate, a.reference, a.crossreference, IF(left(reference, 2) = 'CD', 0, 
+                CONVERT(SUM(b.quantity * b.conversion), DECIMAL(12,3))) as outQuantity, IF(left(reference, 2) = 'CD', CONVERT(SUM(b.quantity * b.conversion),
+                DECIMAL(12,3)), 0) as inQuantity, CONVERT(b.price/b.conversion, DECIMAL(12,2)) as price, b.itemCode, 'Issuance' as module, runningQty, MIN(runningValue) as runningValue, MAX(transValue) as transValue,
+                b.price as cost, b.quantity, b.conversion 
+                FROM iii00 a inner join iii10 b on a.transNum = b.transNum  where b.itemCode = @itemCode GROUP BY a.reference
+                
+                UNION ALL
+                
+                #RR
+                SELECT a.systemDate, a.idUser, a.transNum, a.transDate, a.reference, a.crossreference, IF(left(reference, 2) = 'CD',
+                CONVERT(SUM(b.quantity * b.conversion), DECIMAL(12,3)), 0) as outQuantity, IF(left(reference, 2) = 'CD', 0, 
+                CONVERT(SUM(b.quantity * b.conversion), DECIMAL(12,3))) as inQuantity, 
+                CASE 
+                    WHEN left(reference, 2) = 'TR' AND b.conversion = 1 THEN
+                        round(b.price,2)
+                    ELSE
+                        round(SUM(b.price/b.conversion), 2) 
+                    END as price,
+                b.itemCode, 'Receiving' as module, runningQty, runningValue, transValue, b.price as cost, b.quantity, b.conversion 
+                FROM iir00 a inner join iir10 b on a.transNum = b.transNum   where b.itemCode = @itemCode GROUP BY a.reference
+
+                UNION ALL
+                
+                #IA
+                SELECT a.systemDate, a.idUser, a.transNum, a.transDate, a.reference, a.crossreference, 
+	                CASE WHEN a.transtype <> 'CD' THEN
+		                IF(b.variance < 0, CONVERT(abs(b.variance * b.conversion), DECIMAL(12,3)), 0)
+	                ELSE
+		                IF(b.variance < 0, CONVERT(abs(b.variance * b.conversion), DECIMAL(12,3)), 0)
+	                END as outQuantity,
+	                CASE WHEN a.transtype <> 'CD' THEN
+		                IF(b.variance > 0, CONVERT(abs(b.variance  * b.conversion), DECIMAL(12,3)), 0)
+	                ELSE	
+		                IF(b.variance > 0, CONVERT(abs(b.variance  * b.conversion), DECIMAL(12,3)), 0)
+	                END as inQuantity, 
+	                CONVERT(price / conversion, DECIMAL(12,2)) as price, b.itemCode, 'Adjustment' as module, runningQuantity, abs(runningValue) as runningValue, transValue, 0 as cost, 0 as quantity, b.conversion 
+                FROM iia00 a inner join iia10 b on a.transNum = b.transNum    where b.itemCode = @itemCode GROUP BY a.reference                             
+
+                UNION ALL
+                    
+                #RR
+                SELECT a.systemDate, a.idUser, a.transNum, a.transDate, a.reference, a.crossreference,
+                IF(left(reference, 2) = 'CD', CONVERT(SUM(b.quantity * b.conversion), DECIMAL(12,3)), 0) as outQuantity, 
+                IF(left(reference, 2) = 'CD', 0, CONVERT(SUM(b.quantity * b.conversion), DECIMAL(12,3))) as inQuantity, 
+                CONVERT(SUM(b.price/b.conversion), DECIMAL(12,2))  as price, b.itemCode, 'Purchasing(RV)' as module, 
+                runningQty, runningValue, transValue, ROUND(b.price/b.conversion,2) as cost, ROUND(b.quantity * b.conversion, 2) as quantity, b.conversion 
+                FROM prv00 a inner join prv10 b on a.transNum = b.transNum  where b.itemCode = @itemCode GROUP BY a.reference
+
+                UNION ALL
+
+                #RG
+                SELECT a.systemDate, a.idUser, a.transNum, a.transDate, a.reference, a.crossreference, IF(left(reference, 2) = 'CD', 0, CONVERT(SUM(b.quantity * b.conversion), DECIMAL(12,3))) as outQuantity, IF(left(reference, 2) = 'CD', CONVERT(SUM(b.quantity * b.conversion), DECIMAL(12,3)), 0) as inQuantity, CONVERT(SUM(b.price/b.conversion), DECIMAL(12,2)) as price, b.itemCode, 'Purchasing(RG)' as module, runningQty, runningValue, transValue, 0 as cost, 0 as quantity, b.conversion FROM prg00 a inner join prg10 b on a.transNum = b.transNum  where b.itemCode = @itemCode  GROUP BY a.reference
+
+                UNION ALL
+
+                #CG/CI/SI
+                SELECT a.systemDate, a.idUser, a.transNum, a.transDate, a.reference, IF(left(reference, 2) = 'CD',a.crossreference,''), IF(left(reference, 2) = 'CD', 0, CONVERT(SUM(b.quantity * b.conversion), DECIMAL(12,3))) as outQuantity, IF(left(reference, 2) = 'CD', CONVERT(SUM(b.quantity * b.conversion), DECIMAL(12,3)), 0) as inQuantity, CONVERT(b.cost/b.conversion, DECIMAL(12,2)) as price, b.itemCode, 
+                CASE 
+                    WHEN LEFT(a.reference,2) = 'CG' OR LEFT(a.reference,2) = 'VS' THEN 'Paiwi'
+                    WHEN LEFT(a.crossreference,2) = 'CG' OR LEFT(a.crossreference,2) = 'VS' THEN 'Paiwi'
+                ELSE 'POS' END as module, runningQuantity, MIN(runningValue) as runningValue, MAX(transValue) as transValue, 0 as cost, 0 as quantity, b.conversion FROM sapt0 a inner join sapt1 b on a.transNum = b.transNum  where b.itemCode = @itemCode and a.NoEffectOnInventory = false GROUP BY a.reference
+
+                UNION ALL
+
+                #RC
+                SELECT a.systemDate, a.idUser, a.transNum, a.transDate, a.reference, a.crossreference, IF(left(reference, 2) = 'CD', CONVERT(SUM(b.quantity * b.conversion), DECIMAL(12,3)), 0) as inQuantity, IF(left(reference, 2) = 'CD', 0, CONVERT(SUM(b.quantity * b.conversion), DECIMAL(12,3))) as outQuantity, CONVERT(b.cost/b.conversion, DECIMAL(12,2)) as price, b.itemCode, 'Return' as module, runningQty, (select runningValue from sapr1 where transnum=a.transNum and itemcode=b.itemcode order by detailNum desc limit 1) as runningValue, MAX(transValue) 'transValue', 0 as cost, 0 as quantity, b.conversion   
+                FROM sapr0 a 
+                inner join sapr1 b on a.transNum = b.transNum  where b.itemCode = @itemCode  and a.NoEffectOnInventory = false GROUP BY a.reference
+                                
+                UNION ALL
+
+                #revaluation
+				SELECT a.systemdate, a.iduser, a.transnum, a.transdate, a.reference, null as crossReference, 0 as outQuantity, 0 as inQuantity, b.variance as price, b.itemcode, 'Inventory Revaluation' as module, b.runningQuantity, b.runningvalue, transValue, b.variance as cost, b.runningquantity as quantity, 1 as conversion 
+				FROM irev0 a inner join irev1 b ON a.transnum = b.transnum where itemcode = @itemCode group by a.reference
+                ) as x order by x.transDate, x.systemDate ASC) a;");
         }
 
         public static StringBuilder GetRemainingWrongRunVal()

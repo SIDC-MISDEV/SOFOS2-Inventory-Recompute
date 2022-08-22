@@ -128,6 +128,32 @@ namespace SOFOS2_Inventory_Recompute
                     }
                 });
             };
+
+            btnGenerate.Click += (o, e) =>
+            {
+                try
+                {
+                    Task.Run(() =>
+                    {
+                        StartGenerateItemLedgerLatestValue();
+                    }).ContinueWith((t) =>
+                    {
+                        if (t.IsCompleted)
+                        {
+                            ThreadHelper.SetControlState(this, btnGenerate, true);
+                        }
+                        else
+                        {
+                            throw t.Exception;
+                        }
+                    });
+                }
+                catch 
+                {
+
+                    throw;
+                }
+            };
         }
 
         private void StartRecompute()
@@ -197,6 +223,25 @@ namespace SOFOS2_Inventory_Recompute
 
 
                 controller.UpdateRemainingItems();
+            }
+            catch (Exception er)
+            {
+                MessageBox.Show(er.Message);
+            }
+        }
+
+        private void StartGenerateItemLedgerLatestValue()
+        {
+            try
+            {
+                controller = new Recompute(this);
+
+                ThreadHelper.SetControlState(this, btnGenerate, false);
+
+                ThreadHelper.SetLabel(this, label2, string.Empty);
+
+
+                controller.GetAllItemsWithLatestRunningValue();
             }
             catch (Exception er)
             {

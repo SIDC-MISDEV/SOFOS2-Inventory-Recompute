@@ -38,12 +38,14 @@
             this.btnUpdateCostBatchTwo = new System.Windows.Forms.Button();
             this.btnLast = new System.Windows.Forms.Button();
             this.label1 = new System.Windows.Forms.Label();
+            this.btnGenerate = new System.Windows.Forms.Button();
+            this.label2 = new System.Windows.Forms.Label();
             this.statusStrip1.SuspendLayout();
             this.SuspendLayout();
             // 
             // btnUpdateTransValue
             // 
-            this.btnUpdateTransValue.Location = new System.Drawing.Point(59, 50);
+            this.btnUpdateTransValue.Location = new System.Drawing.Point(59, 12);
             this.btnUpdateTransValue.Name = "btnUpdateTransValue";
             this.btnUpdateTransValue.Size = new System.Drawing.Size(325, 56);
             this.btnUpdateTransValue.TabIndex = 1;
@@ -55,7 +57,7 @@
             this.statusStrip1.ImageScalingSize = new System.Drawing.Size(20, 20);
             this.statusStrip1.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.tsDB});
-            this.statusStrip1.Location = new System.Drawing.Point(0, 633);
+            this.statusStrip1.Location = new System.Drawing.Point(0, 655);
             this.statusStrip1.Name = "statusStrip1";
             this.statusStrip1.Size = new System.Drawing.Size(464, 25);
             this.statusStrip1.TabIndex = 2;
@@ -69,14 +71,14 @@
             // 
             // lblUpdateZero
             // 
-            this.lblUpdateZero.Location = new System.Drawing.Point(59, 334);
+            this.lblUpdateZero.Location = new System.Drawing.Point(59, 296);
             this.lblUpdateZero.Name = "lblUpdateZero";
             this.lblUpdateZero.Size = new System.Drawing.Size(325, 79);
             this.lblUpdateZero.TabIndex = 22;
             // 
             // btnUpdateCost
             // 
-            this.btnUpdateCost.Location = new System.Drawing.Point(59, 112);
+            this.btnUpdateCost.Location = new System.Drawing.Point(59, 74);
             this.btnUpdateCost.Name = "btnUpdateCost";
             this.btnUpdateCost.Size = new System.Drawing.Size(325, 56);
             this.btnUpdateCost.TabIndex = 2;
@@ -85,21 +87,21 @@
             // 
             // lblCostProgress
             // 
-            this.lblCostProgress.Location = new System.Drawing.Point(59, 171);
+            this.lblCostProgress.Location = new System.Drawing.Point(59, 133);
             this.lblCostProgress.Name = "lblCostProgress";
             this.lblCostProgress.Size = new System.Drawing.Size(325, 93);
             this.lblCostProgress.TabIndex = 23;
             // 
             // lblUpdateCostMasterData
             // 
-            this.lblUpdateCostMasterData.Location = new System.Drawing.Point(59, 264);
+            this.lblUpdateCostMasterData.Location = new System.Drawing.Point(59, 226);
             this.lblUpdateCostMasterData.Name = "lblUpdateCostMasterData";
             this.lblUpdateCostMasterData.Size = new System.Drawing.Size(325, 43);
             this.lblUpdateCostMasterData.TabIndex = 24;
             // 
             // btnUpdateCostBatchTwo
             // 
-            this.btnUpdateCostBatchTwo.Location = new System.Drawing.Point(59, 468);
+            this.btnUpdateCostBatchTwo.Location = new System.Drawing.Point(59, 388);
             this.btnUpdateCostBatchTwo.Name = "btnUpdateCostBatchTwo";
             this.btnUpdateCostBatchTwo.Size = new System.Drawing.Size(325, 56);
             this.btnUpdateCostBatchTwo.TabIndex = 25;
@@ -108,7 +110,7 @@
             // 
             // btnLast
             // 
-            this.btnLast.Location = new System.Drawing.Point(62, 530);
+            this.btnLast.Location = new System.Drawing.Point(62, 450);
             this.btnLast.Name = "btnLast";
             this.btnLast.Size = new System.Drawing.Size(325, 56);
             this.btnLast.TabIndex = 26;
@@ -117,16 +119,34 @@
             // 
             // label1
             // 
-            this.label1.Location = new System.Drawing.Point(62, 589);
+            this.label1.Location = new System.Drawing.Point(62, 509);
             this.label1.Name = "label1";
             this.label1.Size = new System.Drawing.Size(325, 31);
             this.label1.TabIndex = 27;
+            // 
+            // btnGenerate
+            // 
+            this.btnGenerate.Location = new System.Drawing.Point(59, 561);
+            this.btnGenerate.Name = "btnGenerate";
+            this.btnGenerate.Size = new System.Drawing.Size(325, 56);
+            this.btnGenerate.TabIndex = 28;
+            this.btnGenerate.Text = "Generate Latest Running value of an Item";
+            this.btnGenerate.UseVisualStyleBackColor = true;
+            // 
+            // label2
+            // 
+            this.label2.Location = new System.Drawing.Point(56, 624);
+            this.label2.Name = "label2";
+            this.label2.Size = new System.Drawing.Size(325, 31);
+            this.label2.TabIndex = 29;
             // 
             // frmMain
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 16F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(464, 658);
+            this.ClientSize = new System.Drawing.Size(464, 680);
+            this.Controls.Add(this.label2);
+            this.Controls.Add(this.btnGenerate);
             this.Controls.Add(this.label1);
             this.Controls.Add(this.btnLast);
             this.Controls.Add(this.btnUpdateCostBatchTwo);
@@ -160,6 +180,8 @@
         private System.Windows.Forms.Button btnUpdateCostBatchTwo;
         private System.Windows.Forms.Button btnLast;
         public System.Windows.Forms.Label label1;
+        private System.Windows.Forms.Button btnGenerate;
+        public System.Windows.Forms.Label label2;
     }
 }
 
