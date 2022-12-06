@@ -454,7 +454,7 @@ namespace SOFOS2_Inventory_Recompute
 
                                             forUpdateItem.Module = p.ToString();
 
-                                            if (p == Process.ReceiveFromVendor || p == Process.Receiving || (p == Process.InventoryAdjustment && details.Qty > 0))
+                                            if (p == Process.ReceiveFromVendor || p == Process.Receiving || p == Process.InventoryAdjustment)
                                             {
                                                 transValue = Math.Round(details.Cost * (details.Qty * details.Conversion), 2, MidpointRounding.AwayFromZero);
 
@@ -706,7 +706,7 @@ namespace SOFOS2_Inventory_Recompute
                                         Process p;
                                         Enum.TryParse(details.Module, out p);
 
-                                        if (p == Process.ReceiveFromVendor || p == Process.Receiving || (p == Process.InventoryAdjustment && details.Qty > 0))
+                                        if (p == Process.ReceiveFromVendor || p == Process.Receiving || p == Process.InventoryAdjustment)
                                         {
                                             transValue = Math.Round(details.Cost * (details.Qty * details.Conversion), 2, MidpointRounding.AwayFromZero);
 
