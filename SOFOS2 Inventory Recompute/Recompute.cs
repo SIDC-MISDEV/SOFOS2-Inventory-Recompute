@@ -474,6 +474,7 @@ namespace SOFOS2_Inventory_Recompute
                                                     cost = Math.Round(runningValue / runningQty, 2, MidpointRounding.AwayFromZero);
 
                                                 updatedCost += 1;
+                                                forUpdateItem.Cost = cost;
                                             }
                                             else
                                             {
@@ -723,6 +724,7 @@ namespace SOFOS2_Inventory_Recompute
                                             }
 
                                             cost = Math.Round(runningValue / runningQty, 2, MidpointRounding.AwayFromZero);
+                                            forUpdateItem.Cost = cost;
                                         }
                                         else
                                         {
